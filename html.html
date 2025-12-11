@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>موقعي الجغرافي - ستايل نيون مع Screenshot</title>
+    
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    
+    <style>
+        /* CSS عشان الشكل يبقى نيون وجذاب (Dark Mode) */
+        body {
+            font-family: 'Consolas', monospace;
+            background-color: #0d1117;
+            color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+
+        .container {
+            background-color: #161b22;
+            padding: 40px;
+            border-radius: 10px;
+            border: 1px solid #00FFFF30;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+            max-width: 550px;
+            width: 90%;
+        }
+
+        h1 {
+            color: #00FFFF;
+            text-shadow: 0 0 7px rgba(0, 255, 255, 0.7);
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+
+        .info-box {
+            background-color: #00FFFF10;
+            border: 1px solid #00FFFF50;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            text-align: right;
+        }
+        
+        .info-box p {
+            margin: 8px 0;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        #location-data {
+            color: #FF00FF;
+            font-size: 1.1rem;
+            text-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
+        }
+
+        .map-button {
+            display: inline-block;
+            background-color: #FF00FF;
+            color: #0d1117;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
+            cursor: pointer;
+            border: none;
+            font-size: 1.1rem;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+            margin: 5px;
+        }
+
+        .map-button:hover {
+            background-color: #FF69B4;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.9);
+            transform: translateY(-2px);
+        }
+        /* ستايل زرار الـ Screenshot */
+        .screenshot-button {
+            background-color: #38761d !important;
+            box-shadow: 0 0 10px rgba(106, 168, 79, 0.5);
+            color: white !important;
+        }
+        .screenshot-button:hover {
+            background-color: #6aa84f !important;
+            box-shadow: 0 0 20px rgba(106, 168, 79, 0.9);
+            transform: translateY(-2px);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="capture-area">
+    <h1><span style="color:#FF00FF;">🌐</span> نظام تحديد الموقع</h1>
+
+    <div class="info-box">
+        <p>بيانات موقعك الحالي:</p>
+        <p id="location-data">...اضغط لمعرفة العنوان التقريبي...</p>
+    </div>
+    
+    <button class="map-button" onclick="getLocation()">
+        ابحث عن موقعي الآن
+    </button>
+    
+    <div id="map-link-container" class="hidden">
+        <hr style="margin: 25px 0; border-color: #00FFFF;">
+        <p style="font-weight: bold; color: #00FFFF;">شوف موقعك "على طول" في خرائط جوجل:</p>
+        
+        <a id="map-link" href="#" target="_blank" class="map-button" style="background-color: #00FFFF; color: #0d1117; box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);">
+            <span style="font-size: 1.2rem;">🗺️</span> شوف على خرائط جوجل (زر)
+        </a>
+        
+        <button class="map-button screenshot-button" onclick="takeScreenshot()">
+            <span style="font-size: 1.2rem;">📸</span> لقطة شاشة للموقع
+        </button>
+    </div>
+
+</div>
+
+<script>
+    function getLocation() {
+        const locationData = document.getElementById('location-data');
+        
+        locationData.textContent = 'جاري طلب إذن الموقع من المتصفح...';
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(showPosition, showError);
+        } else {
+            locationData.textContent = "المتصفح بتاعك مابيدعمش تحديد الموقع.";
+        }
+    }
+
+    function showPosition(position) {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        const locationData = document.getElementById('location-data');
+        const mapLinkContainer = document.getElementById('map-link-container');
+        const mapLink = document.getElementById('map-link');
+        
+        // عرض البيانات بشكل أقرب للعناوين (مع توضيح الحاجة لـ API)
+        locationData.innerHTML = `
+            <span style="color:#00FFFF;">العنوان التقريبي:</span><br>
+            المدينة/المنطقة: <span style="color:#FF00FF;">(غير متاح مباشرة بدون API)</span><br>
+            الموقع الدقيق (Geo-Code): <span style="color:#FF00FF;">${lat.toFixed(5)}, ${lon.toFixed(5)}</span>
+            <br><small style="color:#FF00FF;">(لتحويل الإحداثيات لاسم شارع نحتاج API Key)</small>
+        `;
+
+        // بيجهز لينك جوجل مابس (الموقع الحالي)
+        const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=$${lat},${lon}`;
+        mapLink.href = googleMapsUrl;
+        
+        // بيعرض زرار الخريطة وزرار الـ Screenshot على طول
+        mapLinkContainer.classList.remove('hidden');
+    }
+
+    function showError(error) {
+        const locationData = document.getElementById('location-data');
+        locationData.style.color = 'red';
+        
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                locationData.textContent = "🛑 رفضت الإذن. لازم توافق عشان نحدد الموقع.";
+                break;
+            case error.POSITION_UNAVAILABLE:
+                locationData.textContent = "⚠️ معلومات الموقع مش متاحة حاليًا.";
+                break;
+            case error.TIMEOUT:
+                locationData.textContent = "⏱️ الوقت خلص ومقدرناش نحدد الموقع.";
+                break;
+            default:
+                locationData.textContent = "❌ حصل خطأ غير معروف.";
+                break;
+        }
+        document.getElementById('map-link-container').classList.add('hidden');
+    }
+
+    /* الدالة المسؤولة عن تصوير الشاشة (بواسطة مكتبة html2canvas) */
+    function takeScreenshot() {
+        if (typeof html2canvas !== 'undefined') {
+            const containerElement = document.getElementById('capture-area');
+            
+            html2canvas(containerElement, { 
+                scale: 2,
+                backgroundColor: null
+            }).then(canvas => {
+                const image = canvas.toDataURL('image/png');
+                
+                const a = document.createElement('a');
+                a.href = image;
+                a.download = 'Mawk3y_Neon_Screen.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            });
+        } else {
+            alert('للأسف! المكتبة html2canvas مابتشتغلش. تأكد إنك حطيت اللينك بتاعها صح في الـ Head!');
+        }
+    }
+</script>
+
+</body>
+</html>
